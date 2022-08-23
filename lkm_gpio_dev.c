@@ -29,7 +29,9 @@ int gpio_led=20;
 bool gpio_input_init(int gpio_num);
 bool gpio_output_init(int gpio_num);
 
-
+/*
+ *Callback on open request 
+ */
 static int ccdev_open (struct inode* inod, struct file* fil){
 	printk(KERN_INFO "Device opened...:)\n");
 	device_buffer = kmalloc(DEV_MEM_SIZE, GFP_KERNEL);
@@ -40,12 +42,18 @@ static int ccdev_open (struct inode* inod, struct file* fil){
 	return 0;
 }
 
+/*
+ *Callback on close request 
+ */
 static int ccdev_release(struct inode* inod, struct file* fil){
 	kfree(device_buffer);
 	printk(KERN_INFO "Device FILE closed...\n");
 	return 0;
 }
 
+/*
+ *Callback on read request 
+ */
 static ssize_t ccdev_read(struct file *fil, char __user *buf, size_t len, loff_t* off){
 	char* str = "Hello world back string";
 	copy_to_user(buf, str, 24);
@@ -53,6 +61,10 @@ static ssize_t ccdev_read(struct file *fil, char __user *buf, size_t len, loff_t
 	return 24;
 }
 
+
+/*
+ *Callback on write request 
+ */
 static ssize_t ccdev_write(struct file* fil, const char* buff, size_t size, loff_t* off){
 	memset(device_buffer,'\0', DEV_MEM_SIZE);
 	copy_from_user(device_buffer, buff, size);
@@ -60,7 +72,9 @@ static ssize_t ccdev_write(struct file* fil, const char* buff, size_t size, loff
 	return size;
 }
 
-
+/*
+ * Struct contain callbacks pointers 
+ */
 struct file_operations fops_ccdev = {
 	.read = ccdev_read,
 	.write = ccdev_write,
@@ -69,12 +83,18 @@ struct file_operations fops_ccdev = {
 	.release = ccdev_release
 };
 
+/*
+ * Callback when dev create 
+ */
 static int ccdev_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
     add_uevent_var(env, "DEVMODE=%#o", 0666);
     return 0;
 }
 
+/*
+ * IRQ handler
+ */
 static irq_handler_t ebbgpio_irq_handler(unsigned int irq, void *dev_id, struct pt_regs *regs){
    led_on = !led_on;                          // Invert the LED state on each button press
    gpio_set_value(gpio_led, led_on);          // Set the physical LED accordingly
@@ -83,6 +103,9 @@ static irq_handler_t ebbgpio_irq_handler(unsigned int irq, void *dev_id, struct 
    return (irq_handler_t) IRQ_HANDLED;      // Announce that the IRQ has been handled correctly
 }
 
+/*
+ * Function: init GPIO as Input
+ */
 bool gpio_input_init(int gpio_num){
 	int result = 0;
 	if(gpio_is_valid(gpio_num)){
@@ -114,6 +137,9 @@ bool gpio_input_init(int gpio_num){
 	return result;
 }
 
+/*
+ * Function: init GPIO as Output
+ */
 bool gpio_output_init(int gpio_num){
 	/*Init gpio 20 led */
 
@@ -150,6 +176,10 @@ bool gpio_output_init(int gpio_num){
 	return 1;
 }
 
+
+/*
+ * Callback: Driver entry point, handle init process
+ */
 static int __init ccdev_init(void){
 
 	printk(KERN_INFO "ccdev initialization...\n");
@@ -197,6 +227,10 @@ ur_class:
 }
 module_init(ccdev_init);
 
+
+/*
+ * Callback: exit point, handle freeing
+ */
 static void __exit ccdev_exit(void){
 	device_destroy(ccdev_class, device_number);
 	class_destroy(ccdev_class);
