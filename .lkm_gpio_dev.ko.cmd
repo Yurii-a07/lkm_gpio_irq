@@ -1,1 +1,0 @@
-cmd_/var/aosp/mcross/lkm_gpio_dev/lkm_gpio_dev.ko := aarch64-linux-gnu-ld -r  -EL  -maarch64elf  --build-id=sha1  -T scripts/module.lds -o /var/aosp/mcross/lkm_gpio_dev/lkm_gpio_dev.ko /var/aosp/mcross/lkm_gpio_dev/lkm_gpio_dev.o /var/aosp/mcross/lkm_gpio_dev/lkm_gpio_dev.mod.o;  make -f ./arch/arm64/Makefile.postlink /var/aosp/mcross/lkm_gpio_dev/lkm_gpio_dev.ko

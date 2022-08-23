@@ -1,1 +1,0 @@
-cmd_/var/aosp/mcross/lkm_gpio_dev/Module.symvers := sed 's/\.ko$$/\.o/' /var/aosp/mcross/lkm_gpio_dev/modules.order | scripts/mod/modpost -m -a   -o /var/aosp/mcross/lkm_gpio_dev/Module.symvers -e -i Module.symvers   -T -
