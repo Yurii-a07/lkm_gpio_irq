@@ -6,7 +6,7 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/init.h>
-
+#include <linux/kobject.h>
 #define GPIO_LED 20
 
 #define DEV_MEM_SIZE 512
@@ -20,14 +20,53 @@ struct file_operations fops_ccdev;
 static unsigned int irqNumber;
 
 int number_press=0;
-int gpio_button=16;
-
 bool led_on = 0;
-int gpio_led=20;
-
+static char name_dev[] = "LKM_GPIO_DEV";
 
 bool gpio_input_init(int gpio_num);
 bool gpio_output_init(int gpio_num);
+
+
+bool isRising = 0;
+module_param(isRising, bool, S_IRUGO);
+MODULE_PARM_DESC(isRising, "Rising edge = 1 (default), Falling edge = 0");
+
+int gpio_button=16;
+module_param(gpio_button, int, S_IRUGO);
+MODULE_PARM_DESC(gpio_button, "Button GPIO number");
+
+int gpio_led=20;
+module_param(gpio_led, int, S_IRUGO);
+MODULE_PARM_DESC(gpio_led, "Led GPIO number");
+
+/*
+ * Callback return number of button click
+ */
+static ssize_t number_press_show(struct kobject* kobj, struct kobj_attribute* attr, char* buff){
+	return(sprintf(buff, "%d\n", number_press));
+}
+
+/*
+ * Callback update number of button click 
+ */
+static ssize_t number_press_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buff, size_t count){
+	sscanf(buff, "%du", &number_press);
+	return count;
+}
+
+static struct kobj_attribute number_press_attr=__ATTR(number_press, 0664, number_press_show, number_press_store);
+
+static struct attribute* gpio_dev_attr[] = {
+	&number_press_attr.attr,
+	NULL
+};
+
+static struct attribute_group attr_group = {
+	.name = name_dev,
+	.attrs = gpio_dev_attr,
+};
+
+static struct kobject* kobj_gpio_dev;
 
 /*
  *Callback on open request 
@@ -108,6 +147,21 @@ static irq_handler_t ebbgpio_irq_handler(unsigned int irq, void *dev_id, struct 
  */
 bool gpio_input_init(int gpio_num){
 	int result = 0;
+
+
+	kobj_gpio_dev = kobject_create_and_add("gpio_dev", kernel_kobj->parent);
+	if(!kobj_gpio_dev){
+		printk(KERN_INFO "Error create kobject interface\n");
+		return -ENOMEM;
+	}
+
+	result = sysfs_create_group(kobj_gpio_dev, &attr_group);
+	if(result) {
+		printk(KERN_ALERT "EBB Button: failed to create sysfs group\n");
+		kobject_put(kobj_gpio_dev);
+		return result;
+	}
+
 	if(gpio_is_valid(gpio_num)){
 		printk(KERN_INFO "gpio input is valid");
 	}
